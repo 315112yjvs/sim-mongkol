@@ -68,7 +68,7 @@
   /* ---------- input ---------- */
   .input-row{display:flex; gap:12px;}
   input#num{
-    flex:1; font-size:24px; letter-spacing:5px; padding:14px 18px;
+    flex:1; min-width:0; font-size:24px; letter-spacing:5px; padding:14px 18px;
     border:2px solid var(--line); border-radius:14px; outline:none;
     font-family:"SF Mono",Menlo,monospace; text-align:center; color:var(--ink);
     background:#fdfcf9; transition:border-color .2s, box-shadow .2s;
@@ -285,6 +285,9 @@
     h1{font-size:24px;}
     .panel{padding:20px;}
     .hero{gap:18px;}
+    .input-row{flex-direction:column; gap:10px;}
+    input#num{width:100%; min-width:0; font-size:20px; letter-spacing:4px; padding:13px 12px;}
+    button#go{width:100%; padding:14px 0; font-size:17px;}
   }
 </style>
 </head>
