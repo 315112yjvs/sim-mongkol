@@ -1,0 +1,14 @@
+.bmk-badge{
+  display:inline-block;
+  margin-left:6px;
+  padding:1px 8px;
+  border-radius:999px;
+  font:700 12px/1.6 -apple-system,"Helvetica Neue",Arial,sans-serif;
+  color:#fff !important;
+  text-decoration:none !important;
+  vertical-align:middle;
+  cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+  white-space:nowrap;
+}
+.bmk-badge:hover{ filter:brightness(1.12); }

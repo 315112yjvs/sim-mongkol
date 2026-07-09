@@ -727,6 +727,22 @@ document.querySelectorAll("#dayChips button").forEach(btn=>{
   });
 });
 document.querySelector('#dayChips button[data-d=""]').classList.add("on");
+
+// 網址參數：?n=號碼&d=出生星期（1=週日…7=週六、8=週三夜），供插件跳轉直接分析
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const qn = (qs.get("n") || "").replace(/\D/g, "");
+  if(!qn) return;
+  $("num").value = qn;
+  const qd = qs.get("d") || "";
+  const chip = document.querySelector(`#dayChips button[data-d="${qd}"]`);
+  if(chip){
+    document.querySelectorAll("#dayChips button").forEach(b => b.classList.remove("on"));
+    chip.classList.add("on");
+    selDay = qd;
+  }
+  analyze();
+})();
 </script>
 </body>
 </html>

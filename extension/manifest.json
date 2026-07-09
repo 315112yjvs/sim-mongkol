@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "เบอร์มงคล 號碼快篩",
+  "version": "1.0.0",
+  "description": "自動掃描網頁上的泰國手機號碼，依書中邏輯即時打分，點分數可開啟完整分析頁",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" }
+  },
+  "icons": { "16": "icon16.png", "48": "icon48.png", "128": "icon128.png" },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["scoring.js", "content.js"],
+      "css": ["badge.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

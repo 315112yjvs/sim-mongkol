@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<style>
+  body{ width:250px; margin:0; padding:14px 16px; font:14px/1.6 -apple-system,"Helvetica Neue",Arial,sans-serif; color:#4a4132; background:#faf6ec; }
+  h1{ font-size:15px; margin:0 0 10px; }
+  .row{ display:flex; align-items:center; justify-content:space-between; margin:10px 0; }
+  select{ padding:3px 6px; border:1px solid #d8cfb8; border-radius:6px; background:#fff; font-size:13px; color:#4a4132; }
+  button{ width:100%; margin-top:6px; padding:7px 0; border:none; border-radius:8px; background:#8a7340; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
+  button:hover{ background:#9d854e; }
+  .legend{ margin-top:12px; padding-top:10px; border-top:1px solid #e5dcc6; font-size:12px; color:#7a725d; }
+  .legend span{ display:inline-block; padding:0 7px; border-radius:999px; color:#fff; font-weight:700; margin-right:4px; }
+  a{ color:#8a7340; }
+  .foot{ margin-top:10px; font-size:12px; }
+  .switch{ position:relative; width:40px; height:22px; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:#cfc5aa; border-radius:999px; transition:.2s; cursor:pointer; }
+  .slider::before{ content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  input:checked + .slider{ background:#5b8f4e; }
+  input:checked + .slider::before{ transform:translateX(18px); }
+</style>
+</head>
+<body>
+  <h1>เบอร์มงคล 號碼快篩</h1>
+  <div class="row">
+    <span>自動掃描頁面號碼</span>
+    <label class="switch"><input type="checkbox" id="auto"><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <span>出生星期（塔克夏）</span>
+    <select id="day">
+      <option value="">不使用</option>
+      <option value="1">週日</option>
+      <option value="2">週一</option>
+      <option value="3">週二</option>
+      <option value="4">週三日</option>
+      <option value="8">週三夜</option>
+      <option value="5">週四</option>
+      <option value="6">週五</option>
+      <option value="7">週六</option>
+    </select>
+  </div>
+  <button id="rescan">重新掃描本頁</button>
+  <div class="legend">
+    <span style="background:#5b8f4e">85+</span><span style="background:#b08d2f">55+</span><span style="background:#b5493a">&lt;40</span>
+    分數後帶「!」表示含書中大凶配對
+  </div>
+  <div class="foot">點頁面上的分數標籤可開啟 <a href="https://315112yjvs.github.io/sim-mongkol/" target="_blank">完整分析頁</a></div>
+  <script src="popup.js"></script>
+</body>
+</html>
