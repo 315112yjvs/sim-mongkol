@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "เบอร์มงคล 號碼快篩",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "自動掃描網頁上的泰國手機號碼，依書中邏輯即時打分，點分數可開啟完整分析頁",
   "permissions": ["storage"],
   "action": {
