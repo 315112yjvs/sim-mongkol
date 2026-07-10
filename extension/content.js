@@ -37,7 +37,11 @@ function bmkScan(root){
       const tag = p.tagName;
       if(tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT" || tag === "TEXTAREA") return NodeFilter.FILTER_REJECT;
       if(p.closest(".bmk-badge")) return NodeFilter.FILTER_REJECT;
-      if(p.dataset.bmkDone) return NodeFilter.FILTER_REJECT;
+      if(p.dataset.bmkDone){
+        // SPA 翻頁會重用 DOM 元素只換文字：若徽章已不在，代表內容換了，清掉標記重掃
+        if(p.querySelector(".bmk-badge")) return NodeFilter.FILTER_REJECT;
+        delete p.dataset.bmkDone;
+      }
       return BMK_RE.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
     }
   });
@@ -104,41 +108,68 @@ function bmkFindNext(){
     if(t.disabled || t.getAttribute("aria-disabled") === "true" || t.classList.contains("disabled")) return null;
     return t;
   };
+  // 元素附近（往上 6 層）是否有一排數字頁碼：用來排除輪播箭頭等假貨
+  const inPagination = el => {
+    let cur = el;
+    for(let i = 0; i < 6 && cur && cur !== document.body; i++){
+      let count = 0;
+      for(const c of cur.querySelectorAll("a,button,li,span")){
+        if(/^\d{1,4}$/.test(c.textContent.trim()) && ++count >= 3) return true;
+      }
+      cur = cur.parentElement;
+    }
+    return false;
+  };
+  const cands = [];
+  const add = (el, score) => { if(el && el.offsetParent) cands.push({ el, score }); };
+  const isCarousel = (hay, cls) => /slick|swiper|carousel|slider|gallery|banner/.test(hay + " " + cls);
+
   // 1. rel=next
-  let el = document.querySelector("a[rel='next'],link[rel='next']+a");
-  if(el) return el;
-  // 2. aria-label / class 含 next
-  for(const cand of document.querySelectorAll("[aria-label],[class*='next' i]")){
-    const label = (cand.getAttribute("aria-label") || "").toLowerCase();
+  add(document.querySelector("a[rel='next']"), 20);
+
+  // 2. aria-label / data-testid / test-id / title / class 含 next（排除 prev 與輪播）
+  for(const cand of document.querySelectorAll("[aria-label],[data-testid],[test-id],[title],[class*='next' i]")){
+    const hay = [
+      cand.getAttribute("aria-label"), cand.getAttribute("data-testid"),
+      cand.getAttribute("test-id"), cand.getAttribute("title")
+    ].filter(Boolean).join(" ").toLowerCase();
     const cls = (cand.className + "").toLowerCase();
-    if(label.includes("next") || label.includes("下一") || /(^|[-_ ])next([-_ ]|$)/.test(cls)){
-      const t = clickable(cand);
-      if(t && t.offsetParent) return t;
+    if(hay.includes("prev") || hay.includes("back") || /(^|[-_ ])prev/.test(cls)) continue;
+    if(isCarousel(hay, cls)) continue;
+    const attrHit = hay.includes("next") || hay.includes("下一");
+    const clsHit = /(^|[-_ ])next([-_ ]|$)/.test(cls);
+    if(attrHit || clsHit){
+      add(clickable(cand), (attrHit ? 6 : 3) + (hay.includes("page") || hay.includes("頁") ? 3 : 0));
     }
   }
   // 3. 箭頭符號
   const arrows = new Set([">", "›", "»", "❯", "→", "ถัดไป", "下一頁", "下頁"]);
   for(const cand of document.querySelectorAll("a,button,[role='button'],span,li")){
     if(cand.children.length > 1) continue;
-    if(arrows.has(cand.textContent.trim())){
-      const t = clickable(cand);
-      if(t && t.offsetParent) return t;
-    }
+    if(arrows.has(cand.textContent.trim())) add(clickable(cand), 2);
   }
   // 4. 頁碼：目前頁 +1
-  const cur = document.querySelector("[aria-current]:not([aria-current='false']),[class*='active'],[class*='current'],[class*='selected']");
-  if(cur){
-    const n = parseInt(cur.textContent.trim());
+  const curEl = document.querySelector("[aria-current]:not([aria-current='false']),[class*='active'],[class*='current'],[class*='selected']");
+  if(curEl){
+    const n = parseInt(curEl.textContent.trim());
     if(!isNaN(n)){
       for(const cand of document.querySelectorAll("a,button,[role='button'],li,span")){
-        if(cand.textContent.trim() === String(n + 1)){
-          const t = clickable(cand);
-          if(t && t.offsetParent) return t;
-        }
+        if(cand.textContent.trim() === String(n + 1)) add(clickable(cand), 1);
       }
     }
   }
-  return null;
+  // 附近有數字頁碼列的大幅加分，取最高分
+  let best = null;
+  const seen = new Set();
+  for(const c of cands){
+    if(seen.has(c.el)) continue;
+    seen.add(c.el);
+    c.score += inPagination(c.el) ? 10 : 0;
+    if(!best || c.score > best.score) best = c;
+  }
+  // 低可信度候選（純箭頭符號、class 猜測、頁碼推測）必須有分頁情境才點，避免誤點輪播等元件
+  if(best && best.score < 6) return null;
+  return best ? best.el : null;
 }
 
 function bmkPageSig(){
@@ -235,10 +266,23 @@ function bmkHuntTick(){
     bmkHuntStop();
     return;
   }
+  // 這一頁還沒掃到任何號碼：可能內容還在載入或需要捲動觸發，捲到底部並等待，最多 4 輪
+  const badgeCount = document.querySelectorAll(".bmk-badge").length;
+  if(badgeCount === 0){
+    hunt.emptyWait = (hunt.emptyWait || 0) + 1;
+    if(hunt.emptyWait <= 4){
+      window.scrollTo(0, document.body.scrollHeight);
+      hunt.timer = setTimeout(bmkHuntTick, 2500);
+      return;
+    }
+  } else {
+    hunt.emptyWait = 0;
+  }
+
   const sig = bmkPageSig();
   hunt.sameCount = (sig === hunt.lastSig) ? hunt.sameCount + 1 : 0;
   hunt.lastSig = sig;
-  if(hunt.sameCount >= 3){
+  if(hunt.sameCount >= 4){
     chrome.runtime.sendMessage({ cmd: "notify", title: "獵號結束", body: "頁面不再變化（可能已是最後一頁），未找到達標號碼。" });
     bmkBanner("獵號結束：頁面不再變化（可能已是最後一頁），未找到達標號碼。", "warn");
     bmkHuntStop();

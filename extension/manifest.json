@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "เบอร์มงคล 號碼快篩",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "自動掃描網頁上的手機號碼，依書中邏輯即時打分；獵號模式自動翻頁，找到高分號碼跳通知",
   "permissions": ["storage", "notifications"],
   "background": { "service_worker": "background.js" },
