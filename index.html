@@ -13,10 +13,20 @@
     --bad:#b0472f; --bad-soft:#f8e7e1; --bad-deep:#8c3520;
     --dark:#33302a; --dark2:#4a463e;
   }
+  @font-face{
+    font-family:"openhuninn";
+    src:url("jf-openhuninn-2.1.ttf") format("truetype");
+    font-display:swap;
+  }
+  @font-face{
+    font-family:"ganzaimi";
+    src:url("ganzaimi.ttf") format("truetype");
+    font-display:swap;
+  }
   *{box-sizing:border-box; margin:0; padding:0;}
   html{scroll-behavior:smooth;}
   body{
-    font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    font-family:"openhuninn","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
     background:
       radial-gradient(1200px 500px at 50% -10%, #fbf9f4 0%, var(--bg) 60%),
       var(--bg);
@@ -44,7 +54,7 @@
     font-size:11px; letter-spacing:4px; color:var(--sub); font-weight:700;
     text-transform:uppercase; margin-bottom:6px;
   }
-  h1{font-size:30px; font-weight:800; letter-spacing:2px;}
+  h1{font-size:30px; font-weight:800; letter-spacing:2px; font-family:"ganzaimi","openhuninn","PingFang TC",sans-serif;}
   header .sub{
     color:var(--sub); font-size:13px; margin-top:10px; line-height:1.9;
   }
@@ -57,7 +67,8 @@
     margin-bottom:22px; border:1px solid #fff;
   }
   .sec-title{
-    font-size:16px; font-weight:800; letter-spacing:1px;
+    font-size:17px; font-weight:800; letter-spacing:1px;
+    font-family:"ganzaimi","openhuninn","PingFang TC",sans-serif;
     display:flex; align-items:center; gap:10px; margin-bottom:16px;
   }
   .sec-title .bar{width:5px; height:20px; border-radius:3px; background:var(--dark);}
@@ -289,6 +300,39 @@
     input#num{width:100%; min-width:0; font-size:20px; letter-spacing:4px; padding:13px 12px;}
     button#go{width:100%; padding:14px 0; font-size:17px;}
   }
+
+  /* ---------- A4 報告書 ---------- */
+  .print-row{text-align:right; margin:-6px 0 14px;}
+  .print-btn{
+    background:none; border:1.5px solid var(--dark); color:var(--dark);
+    border-radius:999px; padding:8px 20px; font-size:13px; font-weight:700;
+    font-family:inherit; letter-spacing:2px; cursor:pointer; transition:background .15s,color .15s;
+  }
+  .print-btn:hover{background:var(--dark); color:#f4efe2;}
+  #printHead{display:none;}
+  @media print{
+    @page{size:A4; margin:12mm;}
+    body{padding:0; background:#fff !important;}
+    *{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    header, #inputPanel, .print-row{display:none !important;}
+    .wrap{max-width:100%;}
+    #printHead{
+      display:block; text-align:center; margin-bottom:16px;
+      border-bottom:2px solid var(--dark); padding-bottom:14px;
+    }
+    #printHead .pt{font-size:24px; font-weight:800; letter-spacing:3px; font-family:"ganzaimi","openhuninn",sans-serif;}
+    #printHead .pn{font-size:15px; color:var(--sub); margin-top:6px; letter-spacing:1px;}
+    .panel{
+      box-shadow:none; border:1px solid var(--line);
+      margin-bottom:14px; padding:18px 22px;
+    }
+    .reveal{animation:none !important;}
+    /* 大標題與內文必須同頁 */
+    .sec-title{break-after:avoid; page-break-after:avoid;}
+    #result > .panel:first-child, #tkPanel, #warnPanel{break-inside:avoid; page-break-inside:avoid;}
+    .pair-card, .warn-card, .pc-grid li, .fchip, .tk-tile{break-inside:avoid; page-break-inside:avoid;}
+    .pc-grid{break-inside:avoid; page-break-inside:avoid;}
+  }
 </style>
 </head>
 <body>
@@ -300,7 +344,7 @@
     <div class="sub">依《เปลี่ยนชีวิตด้วยพลังตัวเลข》（用數字的力量改變人生）書中邏輯<br>取號碼<b>後 8 碼</b>，分析 <b>7 組相鄰配對</b> 與 <b>三碼凶數組合</b></div>
   </header>
 
-  <div class="panel">
+  <div class="panel" id="inputPanel">
     <div class="input-row">
       <input id="num" inputmode="numeric" placeholder="0812345678" maxlength="15">
       <button id="go">分析</button>
@@ -324,6 +368,13 @@
   </div>
 
   <div id="result">
+    <div id="printHead">
+      <div class="pt">手機號碼吉凶分析報告書</div>
+      <div class="pn" id="printInfo"></div>
+    </div>
+    <div class="print-row">
+      <button class="print-btn" id="printBtn">產生 A4 報告書</button>
+    </div>
     <div class="panel reveal">
       <div class="hero">
         <div class="ringbox">
@@ -714,11 +765,18 @@ function analyze(){
     detail.appendChild(card);
   });
 
+  // 報告書抬頭
+  const today = new Date();
+  const dateTxt = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,"0")}/${String(today.getDate()).padStart(2,"0")}`;
+  $("printInfo").textContent =
+    `號碼 ${raw}${selDay !== "" ? `｜出生 ${TK_DAYS[Number(selDay)]}` : ""}｜產生日期 ${dateTxt}｜sim-mongkol 吉凶分析工具`;
+
   window.scrollTo({top:$("result").offsetTop-20, behavior:"smooth"});
 }
 
 $("go").addEventListener("click", analyze);
 $("num").addEventListener("keydown", e=>{ if(e.key==="Enter") analyze(); });
+$("printBtn").addEventListener("click", ()=>window.print());
 
 // 出生星期選擇
 document.querySelectorAll("#dayChips button").forEach(btn=>{
