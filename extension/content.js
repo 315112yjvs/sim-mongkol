@@ -93,6 +93,113 @@ chrome.storage.sync.get({ auto: true, day: "" }, cfg => {
   if(bmkAuto){ bmkScan(); bmkStartObserver(); }
 });
 
+// ---------- 自動獵號：自動翻頁，掃到達標分數就通知並停下 ----------
+let hunt = null; // {threshold, timer, sameCount, lastSig}
+
+function bmkFindNext(){
+  const clickable = el => {
+    if(!el) return null;
+    const c = el.closest("a,button,[role='button'],li");
+    const t = c || el;
+    if(t.disabled || t.getAttribute("aria-disabled") === "true" || t.classList.contains("disabled")) return null;
+    return t;
+  };
+  // 1. rel=next
+  let el = document.querySelector("a[rel='next'],link[rel='next']+a");
+  if(el) return el;
+  // 2. aria-label / class 含 next
+  for(const cand of document.querySelectorAll("[aria-label],[class*='next' i]")){
+    const label = (cand.getAttribute("aria-label") || "").toLowerCase();
+    const cls = (cand.className + "").toLowerCase();
+    if(label.includes("next") || label.includes("下一") || /(^|[-_ ])next([-_ ]|$)/.test(cls)){
+      const t = clickable(cand);
+      if(t && t.offsetParent) return t;
+    }
+  }
+  // 3. 箭頭符號
+  const arrows = new Set([">", "›", "»", "❯", "→", "ถัดไป", "下一頁", "下頁"]);
+  for(const cand of document.querySelectorAll("a,button,[role='button'],span,li")){
+    if(cand.children.length > 1) continue;
+    if(arrows.has(cand.textContent.trim())){
+      const t = clickable(cand);
+      if(t && t.offsetParent) return t;
+    }
+  }
+  // 4. 頁碼：目前頁 +1
+  const cur = document.querySelector("[aria-current='page'],[class*='active'],[class*='current'],[class*='selected']");
+  if(cur){
+    const n = parseInt(cur.textContent.trim());
+    if(!isNaN(n)){
+      for(const cand of document.querySelectorAll("a,button,[role='button'],li,span")){
+        if(cand.textContent.trim() === String(n + 1)){
+          const t = clickable(cand);
+          if(t && t.offsetParent) return t;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function bmkPageSig(){
+  return [...document.querySelectorAll(".bmk-badge")].slice(0, 5).map(b => b.href).join("|");
+}
+
+function bmkHuntStop(save = true){
+  if(hunt){ clearTimeout(hunt.timer); hunt = null; }
+  if(save) sessionStorage.removeItem("bmk-hunt");
+}
+
+function bmkHuntTick(){
+  if(!hunt) return;
+  bmkScan();
+  const hits = [...document.querySelectorAll(".bmk-badge")]
+    .filter(b => parseInt(b.textContent) >= hunt.threshold);
+  if(hits.length){
+    hits.forEach(b => b.classList.add("bmk-hit"));
+    hits[0].scrollIntoView({ behavior: "smooth", block: "center" });
+    const list = hits.slice(0, 5).map(b =>
+      b.href.split("n=")[1].split("&")[0] + "（" + parseInt(b.textContent) + " 分" + (b.textContent.includes("!") ? "，含大凶" : "") + "）"
+    ).join("\n");
+    chrome.runtime.sendMessage({
+      cmd: "notify", sticky: true,
+      title: `找到 ${hits.length} 個 ${hunt.threshold} 分以上的號碼！`,
+      body: list + (hits.length > 5 ? `\n⋯共 ${hits.length} 個` : "")
+    });
+    bmkHuntStop();
+    return;
+  }
+  const sig = bmkPageSig();
+  hunt.sameCount = (sig === hunt.lastSig) ? hunt.sameCount + 1 : 0;
+  hunt.lastSig = sig;
+  if(hunt.sameCount >= 3){
+    chrome.runtime.sendMessage({ cmd: "notify", title: "獵號結束", body: "頁面不再變化（可能已是最後一頁），未找到達標號碼。" });
+    bmkHuntStop();
+    return;
+  }
+  const next = bmkFindNext();
+  if(!next){
+    chrome.runtime.sendMessage({ cmd: "notify", title: "獵號結束", body: "找不到下一頁按鈕，未找到達標號碼。" });
+    bmkHuntStop();
+    return;
+  }
+  next.click();
+  hunt.timer = setTimeout(bmkHuntTick, 2200 + Math.random() * 800);
+}
+
+function bmkHuntStart(threshold){
+  bmkHuntStop(false);
+  hunt = { threshold, timer: null, sameCount: 0, lastSig: "" };
+  sessionStorage.setItem("bmk-hunt", String(threshold));
+  bmkHuntTick();
+}
+
+// 整頁重載型網站：續跑獵號
+if(sessionStorage.getItem("bmk-hunt") !== null){
+  const th = Number(sessionStorage.getItem("bmk-hunt"));
+  setTimeout(() => { if(!hunt) bmkHuntStart(th); }, 1800);
+}
+
 chrome.runtime.onMessage.addListener(msg => {
   if(msg.cmd === "rescan"){
     bmkDay = msg.day ?? bmkDay;
@@ -102,6 +209,11 @@ chrome.runtime.onMessage.addListener(msg => {
   } else if(msg.cmd === "clear"){
     bmkClear();
     bmkStopObserver();
+  } else if(msg.cmd === "hunt-start"){
+    bmkDay = msg.day ?? bmkDay;
+    bmkHuntStart(Number(msg.threshold) || 95);
+  } else if(msg.cmd === "hunt-stop"){
+    bmkHuntStop();
   }
 });
 

@@ -9,6 +9,14 @@
   select{ padding:3px 6px; border:1px solid #d8cfb8; border-radius:6px; background:#fff; font-size:13px; color:#4a4132; }
   button{ width:100%; margin-top:6px; padding:7px 0; border:none; border-radius:8px; background:#8a7340; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
   button:hover{ background:#9d854e; }
+  .hunt{ margin-top:12px; padding-top:8px; border-top:1px solid #e5dcc6; }
+  .hunt-title{ font-size:13px; font-weight:800; letter-spacing:1px; }
+  .hunt input{ width:64px; padding:3px 6px; border:1px solid #d8cfb8; border-radius:6px; font-size:14px; text-align:center; color:#4a4132; }
+  .hunt button.go{ background:#5b8f4e; }
+  .hunt button.go:hover{ background:#6ca05e; }
+  .hunt button.stop{ background:#b5493a; }
+  .hunt button.stop:hover{ background:#c65a4a; }
+  .hunt-sub{ font-size:11px; color:#9a917c; margin-top:6px; line-height:1.5; }
   .legend{ margin-top:12px; padding-top:10px; border-top:1px solid #e5dcc6; font-size:12px; color:#7a725d; }
   .legend span{ display:inline-block; padding:0 7px; border-radius:999px; color:#fff; font-weight:700; margin-right:4px; }
   a{ color:#8a7340; }
@@ -42,6 +50,16 @@
     </select>
   </div>
   <button id="rescan">重新掃描本頁</button>
+  <div class="hunt">
+    <div class="hunt-title">自動獵號</div>
+    <div class="row">
+      <span>分數門檻</span>
+      <input type="number" id="threshold" min="0" max="100" value="95">
+    </div>
+    <button id="huntStart" class="go">開始自動翻頁獵號</button>
+    <button id="huntStop" class="stop">停止獵號</button>
+    <div class="hunt-sub">自動點下一頁掃描，找到達標號碼會跳系統通知並停在該頁（號碼會閃黃光）</div>
+  </div>
   <div class="legend">
     <span style="background:#5b8f4e">85+</span><span style="background:#b08d2f">55+</span><span style="background:#b5493a">&lt;40</span>
     分數後帶「!」表示含書中大凶配對

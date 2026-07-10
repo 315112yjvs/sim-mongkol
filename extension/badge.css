@@ -12,3 +12,12 @@
   white-space:nowrap;
 }
 .bmk-badge:hover{ filter:brightness(1.12); }
+.bmk-hit{
+  animation:bmk-pulse 1s ease-in-out infinite;
+  outline:3px solid #ffd54a;
+  outline-offset:2px;
+}
+@keyframes bmk-pulse{
+  0%,100%{ box-shadow:0 1px 3px rgba(0,0,0,.25); transform:scale(1); }
+  50%{ box-shadow:0 0 14px 4px rgba(255,196,0,.75); transform:scale(1.12); }
+}
