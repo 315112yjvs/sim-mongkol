@@ -9,25 +9,33 @@ chrome.storage.sync.get({ auto: true, day: "" }, cfg => {
 autoEl.addEventListener("change", () => chrome.storage.sync.set({ auto: autoEl.checked }));
 dayEl.addEventListener("change", () => chrome.storage.sync.set({ day: dayEl.value }));
 
+const errEl = document.getElementById("err");
 const sendToTab = async payload => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if(tab?.id) chrome.tabs.sendMessage(tab.id, payload).catch(() => {});
+  if(!tab?.id) return false;
+  try{
+    await chrome.tabs.sendMessage(tab.id, payload);
+    return true;
+  }catch(e){
+    return false;
+  }
+};
+const run = async payload => {
+  errEl.style.display = "none";
+  const ok = await sendToTab(payload);
+  if(ok){ window.close(); }
+  else{
+    errEl.textContent = "無法連線此網頁。請先重新整理該網頁（⌘R）再點一次；剛更新插件後舊分頁都需要重新整理。";
+    errEl.style.display = "block";
+  }
 };
 
-document.getElementById("rescan").addEventListener("click", async () => {
-  await sendToTab({ cmd: "rescan", day: dayEl.value });
-  window.close();
-});
+document.getElementById("rescan").addEventListener("click", () => run({ cmd: "rescan", day: dayEl.value }));
 
 const thEl = document.getElementById("threshold");
 chrome.storage.sync.get({ threshold: 95 }, cfg => { thEl.value = cfg.threshold; });
 thEl.addEventListener("change", () => chrome.storage.sync.set({ threshold: Number(thEl.value) || 95 }));
 
-document.getElementById("huntStart").addEventListener("click", async () => {
-  await sendToTab({ cmd: "hunt-start", threshold: Number(thEl.value) || 95, day: dayEl.value });
-  window.close();
-});
-document.getElementById("huntStop").addEventListener("click", async () => {
-  await sendToTab({ cmd: "hunt-stop" });
-  window.close();
-});
+document.getElementById("huntStart").addEventListener("click", () =>
+  run({ cmd: "hunt-start", threshold: Number(thEl.value) || 95, day: dayEl.value }));
+document.getElementById("huntStop").addEventListener("click", () => run({ cmd: "hunt-stop" }));

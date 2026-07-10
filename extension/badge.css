@@ -21,3 +21,21 @@
   0%,100%{ box-shadow:0 1px 3px rgba(0,0,0,.25); transform:scale(1); }
   50%{ box-shadow:0 0 14px 4px rgba(255,196,0,.75); transform:scale(1.12); }
 }
+#bmk-banner{
+  position:fixed; top:16px; left:50%; transform:translateX(-50%);
+  z-index:2147483647; max-width:92vw; display:none;
+  padding:12px 22px; border-radius:12px;
+  font:700 14px/1.6 -apple-system,"Helvetica Neue",Arial,sans-serif;
+  color:#fff; box-shadow:0 8px 30px rgba(0,0,0,.35);
+  white-space:pre-line;
+}
+#bmk-banner.bmk-b-info{ background:#3f3b33; }
+#bmk-banner.bmk-b-ok{ background:#3f6b33; }
+#bmk-banner.bmk-b-warn{ background:#a3562e; }
+#bmk-status{
+  position:fixed; right:16px; bottom:16px; z-index:2147483647; display:none;
+  background:#3f3b33; color:#f4efe2; padding:9px 16px; border-radius:999px;
+  font:700 13px/1 -apple-system,"Helvetica Neue",Arial,sans-serif;
+  box-shadow:0 6px 18px rgba(0,0,0,.3); cursor:pointer;
+}
+#bmk-status:hover{ background:#5a5344; }

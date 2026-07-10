@@ -126,7 +126,7 @@ function bmkFindNext(){
     }
   }
   // 4. 頁碼：目前頁 +1
-  const cur = document.querySelector("[aria-current='page'],[class*='active'],[class*='current'],[class*='selected']");
+  const cur = document.querySelector("[aria-current]:not([aria-current='false']),[class*='active'],[class*='current'],[class*='selected']");
   if(cur){
     const n = parseInt(cur.textContent.trim());
     if(!isNaN(n)){
@@ -145,13 +145,78 @@ function bmkPageSig(){
   return [...document.querySelectorAll(".bmk-badge")].slice(0, 5).map(b => b.href).join("|");
 }
 
+// ---------- 頁面內回饋 UI（不依賴系統通知權限） ----------
+function bmkBanner(text, type = "info", ttl = 8000){
+  let el = document.getElementById("bmk-banner");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "bmk-banner";
+    document.documentElement.appendChild(el);
+  }
+  el.className = "bmk-b-" + type;
+  el.textContent = text;
+  el.style.display = "block";
+  clearTimeout(el._t);
+  if(ttl) el._t = setTimeout(() => { el.style.display = "none"; }, ttl);
+}
+function bmkHideBanner(){
+  const el = document.getElementById("bmk-banner");
+  if(el) el.style.display = "none";
+}
+function bmkStatus(text){
+  let el = document.getElementById("bmk-status");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "bmk-status";
+    el.title = "點擊停止獵號";
+    el.addEventListener("click", () => bmkHuntStop());
+    document.documentElement.appendChild(el);
+  }
+  el.textContent = text + "　✕";
+  el.style.display = "block";
+}
+function bmkHideStatus(){
+  const el = document.getElementById("bmk-status");
+  if(el) el.style.display = "none";
+}
+
+// ---------- 學習下一頁按鈕（找不到時請使用者示範一次） ----------
+function bmkNextKey(){ return "bmk-next:" + location.host; }
+function bmkLearnedNext(){
+  const sel = localStorage.getItem(bmkNextKey());
+  if(!sel) return null;
+  try{
+    const el = document.querySelector(sel);
+    if(el && el.offsetParent) return el;
+  }catch(e){}
+  return null;
+}
+function bmkBuildSelector(el){
+  const al = el.getAttribute && el.getAttribute("aria-label");
+  if(el.id) return "#" + CSS.escape(el.id);
+  if(al) return el.tagName.toLowerCase() + '[aria-label="' + al.replace(/"/g, '\\"') + '"]';
+  const path = [];
+  let cur = el;
+  for(let depth = 0; cur && depth < 4 && cur !== document.body; depth++){
+    let seg = cur.tagName.toLowerCase();
+    seg += [...cur.classList].slice(0, 2).map(c => "." + CSS.escape(c)).join("");
+    path.unshift(seg);
+    if(cur.id){ path[0] = "#" + CSS.escape(cur.id); break; }
+    cur = cur.parentElement;
+  }
+  return path.join(" > ");
+}
+
 function bmkHuntStop(save = true){
   if(hunt){ clearTimeout(hunt.timer); hunt = null; }
   if(save) sessionStorage.removeItem("bmk-hunt");
+  bmkHideStatus();
 }
 
 function bmkHuntTick(){
   if(!hunt) return;
+  hunt.round++;
+  bmkStatus(`獵號中・第 ${hunt.round} 頁・門檻 ${hunt.threshold} 分`);
   bmkScan();
   const hits = [...document.querySelectorAll(".bmk-badge")]
     .filter(b => parseInt(b.textContent) >= hunt.threshold);
@@ -166,6 +231,7 @@ function bmkHuntTick(){
       title: `找到 ${hits.length} 個 ${hunt.threshold} 分以上的號碼！`,
       body: list + (hits.length > 5 ? `\n⋯共 ${hits.length} 個` : "")
     });
+    bmkBanner(`🎉 找到 ${hits.length} 個 ${hunt.threshold} 分以上的號碼！已標亮並停在本頁`, "ok", 15000);
     bmkHuntStop();
     return;
   }
@@ -174,13 +240,22 @@ function bmkHuntTick(){
   hunt.lastSig = sig;
   if(hunt.sameCount >= 3){
     chrome.runtime.sendMessage({ cmd: "notify", title: "獵號結束", body: "頁面不再變化（可能已是最後一頁），未找到達標號碼。" });
+    bmkBanner("獵號結束：頁面不再變化（可能已是最後一頁），未找到達標號碼。", "warn");
     bmkHuntStop();
     return;
   }
-  const next = bmkFindNext();
+  const next = bmkLearnedNext() || bmkFindNext();
   if(!next){
-    chrome.runtime.sendMessage({ cmd: "notify", title: "獵號結束", body: "找不到下一頁按鈕，未找到達標號碼。" });
-    bmkHuntStop();
+    // 教學模式：請使用者示範點一次下一頁
+    bmkBanner("找不到「下一頁」按鈕。請直接點一次網頁上的下一頁，插件會記住位置並自動接手。", "warn", 0);
+    const onTeach = e => {
+      if(!hunt) return;
+      const t = e.target.closest("a,button,[role='button'],li,span,div") || e.target;
+      localStorage.setItem(bmkNextKey(), bmkBuildSelector(t));
+      bmkBanner("已記住下一頁按鈕，獵號繼續。", "ok", 4000);
+      hunt.timer = setTimeout(bmkHuntTick, 2500);
+    };
+    document.addEventListener("click", onTeach, { capture: true, once: true });
     return;
   }
   next.click();
@@ -189,8 +264,9 @@ function bmkHuntTick(){
 
 function bmkHuntStart(threshold){
   bmkHuntStop(false);
-  hunt = { threshold, timer: null, sameCount: 0, lastSig: "" };
+  hunt = { threshold, timer: null, sameCount: 0, lastSig: "", round: 0 };
   sessionStorage.setItem("bmk-hunt", String(threshold));
+  bmkBanner(`獵號模式啟動：自動翻頁掃描，${threshold} 分以上會通知。點右下角 ✕ 可停止。`, "info", 5000);
   bmkHuntTick();
 }
 
