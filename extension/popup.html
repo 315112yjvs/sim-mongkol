@@ -17,6 +17,13 @@
   .hunt button.stop{ background:#b5493a; }
   .hunt button.stop:hover{ background:#c65a4a; }
   .hunt-sub{ font-size:11px; color:#9a917c; margin-top:6px; line-height:1.5; }
+  .digit-chips{ display:flex; flex-wrap:wrap; gap:4px; max-width:150px; justify-content:flex-end; }
+  .digit-chips button{
+    width:24px; height:24px; padding:0; margin:0; border-radius:50%;
+    border:1px solid #d8cfb8; background:#fff; color:#4a4132;
+    font-size:12px; font-weight:700; cursor:pointer;
+  }
+  .digit-chips button.on{ background:#b5493a; border-color:#b5493a; color:#fff; }
   .legend{ margin-top:12px; padding-top:10px; border-top:1px solid #e5dcc6; font-size:12px; color:#7a725d; }
   .legend span{ display:inline-block; padding:0 7px; border-radius:999px; color:#fff; font-weight:700; margin-right:4px; }
   a{ color:#8a7340; }
@@ -57,6 +64,11 @@
       <span>分數門檻</span>
       <input type="number" id="threshold" min="0" max="100" value="95">
     </div>
+    <div class="row" style="align-items:flex-start">
+      <span style="padding-top:4px">排除數字</span>
+      <div class="digit-chips" id="digitChips"></div>
+    </div>
+    <div class="hunt-sub" style="margin:-2px 0 8px">後 8 碼含排除數字的號碼即使達標也不停（例：週一出生可排除凶星 1）</div>
     <button id="huntStart" class="go">開始自動翻頁獵號</button>
     <button id="huntStop" class="stop">停止獵號</button>
     <div class="hunt-sub">自動點下一頁掃描，找到達標號碼會跳系統通知並停在該頁（號碼會閃黃光）</div>

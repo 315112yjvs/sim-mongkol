@@ -247,10 +247,18 @@ function bmkHuntStop(save = true){
 function bmkHuntTick(){
   if(!hunt) return;
   hunt.round++;
-  bmkStatus(`獵號中・第 ${hunt.round} 頁・門檻 ${hunt.threshold} 分`);
+  bmkStatus(`獵號中・第 ${hunt.round} 頁・門檻 ${hunt.threshold} 分` +
+    (hunt.exclude ? `・排除 ${[...hunt.exclude].join(" ")}` : ""));
   bmkScan();
-  const hits = [...document.querySelectorAll(".bmk-badge")]
-    .filter(b => parseInt(b.textContent) >= hunt.threshold);
+  const hits = [...document.querySelectorAll(".bmk-badge")].filter(b => {
+    if(parseInt(b.textContent) < hunt.threshold) return false;
+    if(hunt.exclude){
+      const digits = (b.href.split("n=")[1] || "").split("&")[0];
+      const core = digits.slice(2); // 前兩碼不計，比照書中與塔克夏規則
+      for(const ch of hunt.exclude) if(core.includes(ch)) return false;
+    }
+    return true;
+  });
   if(hits.length){
     hits.forEach(b => b.classList.add("bmk-hit"));
     hits[0].scrollIntoView({ behavior: "smooth", block: "center" });
@@ -303,21 +311,25 @@ function bmkHuntTick(){
     return;
   }
   next.click();
-  hunt.timer = setTimeout(bmkHuntTick, 2200 + Math.random() * 800);
+  // 網頁反應慢時：上一輪點擊沒換頁（sameCount > 0），這次多等一點再確認與重按
+  hunt.timer = setTimeout(bmkHuntTick, hunt.sameCount > 0 ? 3200 : 2200 + Math.random() * 800);
 }
 
-function bmkHuntStart(threshold){
+function bmkHuntStart(threshold, exclude = ""){
   bmkHuntStop(false);
-  hunt = { threshold, timer: null, sameCount: 0, lastSig: "", round: 0 };
-  sessionStorage.setItem("bmk-hunt", String(threshold));
-  bmkBanner(`獵號模式啟動：自動翻頁掃描，${threshold} 分以上會通知。點右下角 ✕ 可停止。`, "info", 5000);
+  hunt = { threshold, exclude, timer: null, sameCount: 0, lastSig: "", round: 0 };
+  sessionStorage.setItem("bmk-hunt", JSON.stringify({ threshold, exclude }));
+  bmkBanner(`獵號模式啟動：自動翻頁掃描，${threshold} 分以上會通知` +
+    (exclude ? `（排除含 ${[...exclude].join("、")} 的號碼）` : "") + `。點右下角 ✕ 可停止。`, "info", 5000);
   bmkHuntTick();
 }
 
 // 整頁重載型網站：續跑獵號
 if(sessionStorage.getItem("bmk-hunt") !== null){
-  const th = Number(sessionStorage.getItem("bmk-hunt"));
-  setTimeout(() => { if(!hunt) bmkHuntStart(th); }, 1800);
+  let saved = {};
+  try{ saved = JSON.parse(sessionStorage.getItem("bmk-hunt")) || {}; }
+  catch(e){ saved = { threshold: Number(sessionStorage.getItem("bmk-hunt")) }; }
+  setTimeout(() => { if(!hunt && saved.threshold) bmkHuntStart(saved.threshold, saved.exclude || ""); }, 1800);
 }
 
 chrome.runtime.onMessage.addListener(msg => {
@@ -331,7 +343,7 @@ chrome.runtime.onMessage.addListener(msg => {
     bmkStopObserver();
   } else if(msg.cmd === "hunt-start"){
     bmkDay = msg.day ?? bmkDay;
-    bmkHuntStart(Number(msg.threshold) || 95);
+    bmkHuntStart(Number(msg.threshold) || 95, msg.exclude || "");
   } else if(msg.cmd === "hunt-stop"){
     bmkHuntStop();
   }

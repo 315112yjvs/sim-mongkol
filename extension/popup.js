@@ -36,6 +36,25 @@ const thEl = document.getElementById("threshold");
 chrome.storage.sync.get({ threshold: 95 }, cfg => { thEl.value = cfg.threshold; });
 thEl.addEventListener("change", () => chrome.storage.sync.set({ threshold: Number(thEl.value) || 95 }));
 
+// 排除數字 0-9 圓形切換鈕
+const chipsEl = document.getElementById("digitChips");
+let exclude = "";
+for(let d = 0; d <= 9; d++){
+  const b = document.createElement("button");
+  b.textContent = d;
+  b.addEventListener("click", () => {
+    const ch = String(d);
+    exclude = exclude.includes(ch) ? exclude.replace(ch, "") : exclude + ch;
+    b.classList.toggle("on");
+    chrome.storage.sync.set({ exclude });
+  });
+  chipsEl.appendChild(b);
+}
+chrome.storage.sync.get({ exclude: "" }, cfg => {
+  exclude = cfg.exclude;
+  [...chipsEl.children].forEach((b, i) => { if(exclude.includes(String(i))) b.classList.add("on"); });
+});
+
 document.getElementById("huntStart").addEventListener("click", () =>
-  run({ cmd: "hunt-start", threshold: Number(thEl.value) || 95, day: dayEl.value }));
+  run({ cmd: "hunt-start", threshold: Number(thEl.value) || 95, day: dayEl.value, exclude }));
 document.getElementById("huntStop").addEventListener("click", () => run({ cmd: "hunt-stop" }));
