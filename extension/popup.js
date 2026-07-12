@@ -58,3 +58,4 @@ chrome.storage.sync.get({ exclude: "" }, cfg => {
 document.getElementById("huntStart").addEventListener("click", () =>
   run({ cmd: "hunt-start", threshold: Number(thEl.value) || 95, day: dayEl.value, exclude }));
 document.getElementById("huntStop").addEventListener("click", () => run({ cmd: "hunt-stop" }));
+document.getElementById("resetNext").addEventListener("click", () => run({ cmd: "reset-next" }));

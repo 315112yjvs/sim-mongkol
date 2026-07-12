@@ -290,6 +290,13 @@ function bmkHuntTick(){
   const sig = bmkPageSig();
   hunt.sameCount = (sig === hunt.lastSig) ? hunt.sameCount + 1 : 0;
   hunt.lastSig = sig;
+  // 記住的下一頁按鈕連點兩輪都沒讓頁面變化：可能記錯了，自動捨棄改用內建偵測
+  if(hunt.sameCount >= 2 && !hunt.droppedLearned && localStorage.getItem(bmkNextKey())){
+    localStorage.removeItem(bmkNextKey());
+    hunt.droppedLearned = true;
+    hunt.sameCount = 0;
+    bmkBanner("記住的下一頁按鈕似乎無效，已捨棄並改用自動偵測。", "warn", 5000);
+  }
   if(hunt.sameCount >= 4){
     chrome.runtime.sendMessage({ cmd: "notify", title: "獵號結束", body: "頁面不再變化（可能已是最後一頁），未找到達標號碼。" });
     bmkBanner("獵號結束：頁面不再變化（可能已是最後一頁），未找到達標號碼。", "warn");
@@ -346,6 +353,9 @@ chrome.runtime.onMessage.addListener(msg => {
     bmkHuntStart(Number(msg.threshold) || 95, msg.exclude || "");
   } else if(msg.cmd === "hunt-stop"){
     bmkHuntStop();
+  } else if(msg.cmd === "reset-next"){
+    localStorage.removeItem(bmkNextKey());
+    bmkBanner("已清除本站記住的下一頁按鈕。下次獵號會重新自動偵測；偵測不到會再請你示範點一次。", "ok", 6000);
   }
 });
 
