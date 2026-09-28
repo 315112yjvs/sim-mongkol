@@ -15,12 +15,12 @@
   }
   @font-face{
     font-family:"openhuninn";
-    src:url("jf-openhuninn-2.1.ttf") format("truetype");
+    src:url("fonts/openhuninn.woff2") format("woff2");
     font-display:swap;
   }
   @font-face{
     font-family:"ganzaimi";
-    src:url("ganzaimi.ttf") format("truetype");
+    src:url("fonts/ganzaimi.woff2") format("woff2");
     font-display:swap;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -505,8 +505,8 @@ const PAIRS = {
 };
 
 // ================================================================
-// 書中三碼凶數組合（以數字集合比對，不分順序出現在相鄰三碼）
-// cat：書中分類
+// 書中三碼凶數組合（只比對 label 中列出的順序，出現在相鄰三碼才成立）
+// set：分組代號（排序後的三碼），cat：書中分類
 // ================================================================
 const TRIPLES = [
   {set:"001", p:-8, label:"001 / 010 / 100", cat:"0 的危險組", desc:"工作不進步、上司不疼、被扯後腿、朋友背叛"},
@@ -553,6 +553,10 @@ const TK_CATS = [
 ];
 const TK_DAYS = {1:"週日",2:"週一",3:"週二",4:"週三日",5:"週四",6:"週五",7:"週六",8:"週三夜（羅睺）"};
 
+// 三碼順序 -> 凶數組合，例如 "130" -> 013 組
+const TRIPLE_BY_ORDER = new Map();
+TRIPLES.forEach(t => t.label.split(" / ").forEach(o => TRIPLE_BY_ORDER.set(o, t)));
+
 function taksaMap(birthNum){
   const start = TK_CLOCK.indexOf(birthNum);
   const map = {}; // digit -> cat
@@ -569,6 +573,9 @@ const RING_LEN = 2*Math.PI*64; // 402
 
 function analyze(){
   let raw = $("num").value.replace(/\D/g,"");
+  // 國碼轉回本地格式：+66 9x → 09x（泰國）、+886 9x → 09x（台灣）
+  if(raw.length === 11 && raw.startsWith("66")) raw = "0" + raw.slice(2);
+  else if(raw.length === 12 && raw.startsWith("886")) raw = "0" + raw.slice(3);
   if(raw.length < 4){ alert("請輸入至少 4 碼數字"); return; }
   let prefix = "", core = raw;
   if(raw.length >= 9 && raw[0] === "0"){
@@ -595,8 +602,7 @@ function analyze(){
   // 三碼凶數
   const hits = [];
   for(let i=0;i<core.length-2;i++){
-    const key = core.slice(i,i+3).split("").sort().join("");
-    const t = TRIPLES.find(t=>t.set===key);
+    const t = TRIPLE_BY_ORDER.get(core.slice(i,i+3));
     if(t) hits.push({...t, at:core.slice(i,i+3)});
   }
   hits.forEach(h=>score += h.p);
@@ -770,6 +776,11 @@ function analyze(){
   const dateTxt = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,"0")}/${String(today.getDate()).padStart(2,"0")}`;
   $("printInfo").textContent =
     `號碼 ${raw}${selDay !== "" ? `｜出生 ${TK_DAYS[Number(selDay)]}` : ""}｜產生日期 ${dateTxt}｜sim-mongkol 吉凶分析工具`;
+
+  // 網址同步，結果可直接複製連結分享或加書籤
+  const qs = new URLSearchParams({n: raw});
+  if(selDay !== "") qs.set("d", selDay);
+  history.replaceState(null, "", "?" + qs);
 
   window.scrollTo({top:$("result").offsetTop-20, behavior:"smooth"});
 }

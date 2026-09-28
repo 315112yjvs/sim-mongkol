@@ -1,16 +1,20 @@
 // 掃描頁面文字中的手機號碼（泰國 06/08/09、台灣 09 開頭，共 10 碼），在旁邊插入分數標籤
-// 分組不拘：092-867-5576 / 0980-288838 / 0968-888-555 / 0980-79-79-79 / 0900 007 123 / +66 92-867-5576
-const BMK_RE = /\+?\d(?:[-\s]?\d){8,10}/g;
+// 分組不拘：092-867-5576 / 0980-288838 / 0968-888-555 / 0980-79-79-79 / 0900 007 123 / +66 92-867-5576 / +886 912-345-678
+const BMK_RE = /\+?\d(?:[-\s]?\d){8,11}/g;
+// 篩選用：不能共用帶 g 的 BMK_RE，test() 會記住 lastIndex，導致下一個文字節點從中間開始比對而漏抓
+const BMK_TEST = new RegExp(BMK_RE.source);
 const TOOL_URL = "https://315112yjvs.github.io/sim-mongkol/";
 
 let bmkDay = "";
 let bmkAuto = true;
 let bmkObserver = null;
 let bmkTimer = null;
+let bmkPending = new Set(); // 有變動、待掃描的元素
 
 function bmkNormalize(text){
   let d = text.replace(/\D/g, "");
   if(d.length === 11 && d.startsWith("66")) d = "0" + d.slice(2);
+  else if(d.length === 12 && d.startsWith("886")) d = "0" + d.slice(3);
   return /^0[689]\d{8}$/.test(d) ? d : null;
 }
 
@@ -42,7 +46,7 @@ function bmkScan(root){
         if(p.querySelector(".bmk-badge")) return NodeFilter.FILTER_REJECT;
         delete p.dataset.bmkDone;
       }
-      return BMK_RE.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      return BMK_TEST.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
     }
   });
   const targets = [];
@@ -80,15 +84,45 @@ function bmkClear(){
 
 function bmkStartObserver(){
   if(bmkObserver) return;
-  bmkObserver = new MutationObserver(() => {
-    clearTimeout(bmkTimer);
-    bmkTimer = setTimeout(() => bmkScan(), 500);
+  // 只掃有變動的區塊，避免輪播、計時器等頻繁變動的頁面一直重掃整頁
+  bmkObserver = new MutationObserver(muts => {
+    for(const m of muts){
+      if(m.type === "characterData"){
+        if(m.target.parentElement) bmkPending.add(m.target.parentElement);
+        continue;
+      }
+      for(const n of m.addedNodes){
+        if(n.nodeType === 1){
+          if(!n.classList.contains("bmk-badge")) bmkPending.add(n);
+        } else if(n.nodeType === 3 && n.parentElement){
+          bmkPending.add(n.parentElement);
+        }
+      }
+    }
+    // 已排程就不重設：頁面若持續變動（計時器、輪播），每次重設會讓掃描永遠等不到
+    if(!bmkPending.size || bmkTimer) return;
+    bmkTimer = setTimeout(bmkFlush, 500);
   });
-  bmkObserver.observe(document.body, { childList: true, subtree: true });
+  bmkObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+
+function bmkFlush(){
+  bmkTimer = null;
+  const roots = [...bmkPending].filter(el => el.isConnected);
+  bmkPending = new Set();
+  // 變動太多（整頁換內容）就直接掃全頁；否則略過已被其他待掃元素包住的，逐塊掃
+  if(roots.length > 200) return bmkScan();
+  for(const el of roots){
+    if(roots.some(o => o !== el && o.contains(el))) continue;
+    bmkScan(el);
+  }
 }
 
 function bmkStopObserver(){
   if(bmkObserver){ bmkObserver.disconnect(); bmkObserver = null; }
+  clearTimeout(bmkTimer);
+  bmkTimer = null;
+  bmkPending = new Set();
 }
 
 chrome.storage.sync.get({ auto: true, day: "" }, cfg => {

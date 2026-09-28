@@ -24,7 +24,7 @@ const pairRows = entries.map(e => `
 
 const tripleRows = TRIPLES.slice().sort((a, b) => a.p - b.p || a.set.localeCompare(b.set)).map(t => `
   <tr>
-    <td class="pk">${t.label}<br><small>等不分順序</small></td>
+    <td class="pk">${t.label}</td>
     <td class="pn">${t.cat}</td>
     <td class="pl">${t.desc}</td>
     <td class="ps bb">${t.p}</td>
@@ -104,7 +104,7 @@ const out = `<!DOCTYPE html>
   <li><b>相鄰兩碼為一組「配對」（คู่ลำดับ）</b>：8 碼共有 7 組配對，這是全書分析的基本單位。</li>
   <li><b>配對雙向同義</b>：24 與 42 是同一組配對，吉凶相同。</li>
   <li><b>吉祥號（เบอร์มงคล）的定義</b>：後 8 碼完全不含任何仇敵配對（เลขคู่ศัตรู）。含仇敵配對的號碼即使其他配對再好，書中也不認定為吉祥號。</li>
-  <li><b>三碼凶數不分順序</b>：書中明寫「สลับตัวเลขได้（可換位）」，例如 130、103、013 同組。</li>
+  <li><b>三碼凶數只算列出的順序</b>：例如 013 組只有 130、103、013 三種排法成立，031、301、310 不算。</li>
   <li><b>數字 0 弊多於利</b>：0 是死亡之數，與任何數字相連多半減分，00 最凶。</li>
   <li><b>數字 9 隨鄰數變化</b>：9 本身偏吉（靈知、神佑），吉凶看它跟誰相鄰。</li>
   <li><b>換號十誡精選</b>：想換號的意願要出於自己（效果才快）；吉祥號不等於漂亮號；換號後專注於自己的目標，效果會更快更持續；號碼要配合每個人的需求排列，沒有人人通用的完美號。</li>
@@ -142,8 +142,8 @@ const out = `<!DOCTYPE html>
 </table>
 
 <div class="pagebreak"></div>
-<h2>五、三碼凶數組合（不分順序，25 組）</h2>
-<div class="note">三個數字連在一起出現時成立，順序可任意調換。多與 0 相關：仇敵配對再加上 0 會凶上加凶，書中稱「มหันตภัย 大禍」。</div>
+<h2>五、三碼凶數組合（25 組，只算列出的順序）</h2>
+<div class="note">三個數字依表中列出的順序連在一起出現時成立。多與 0 相關：仇敵配對再加上 0 會凶上加凶，書中稱「มหันตภัย 大禍」。</div>
 <table>
   <tr><th style="width:110px">組合（書中寫法）</th><th style="width:100px">分類</th><th>影響</th><th style="width:36px">扣分</th></tr>
   ${tripleRows}
